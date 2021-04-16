@@ -31,3 +31,14 @@ class Device:
         y = y_c + x_l*np.sin(t_c) + y_l*np.cos(t_c)
         t = t_c + t_l
         return [x, y, t]
+
+    def find_intersection(self, photon, device_orientation: list):
+        x_c, y_c, t_c = device_orientation
+        m_c = np.tan(t_c)
+        x_p, y_p, t_p = [photon.x, photon.y, photon.angle]
+        m_p = np.tan(t_p)
+        x = (y_p - y_c - m_p*x_p + m_c*x_c)/(m_c - m_p)
+        y = y_c + m_c*(x - x_c)
+        return [x, y]
+
+

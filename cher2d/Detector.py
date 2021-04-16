@@ -5,7 +5,7 @@ import numpy as np
 
 class Detector(Device):
     """
-    A Device object is a group of PhotoSensorModules
+    A Detector object is a group of PhotoSensorModules
 
     """
 
