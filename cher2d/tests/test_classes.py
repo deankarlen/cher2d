@@ -3,6 +3,7 @@ from cher2d.PhotoSensor import PhotoSensor
 from cher2d.PhotoSensorModule import PhotoSensorModule
 from cher2d.Detector import Detector
 from cher2d.Emitter import Emitter
+from cher2d.Analyzer import Analyzer
 from cher2d.Visualizer import Visualizer
 
 
@@ -21,9 +22,21 @@ class MyTestCase(unittest.TestCase):
         t_0 = 2.
         my_emitter.emit(t_0)
         my_vis.draw_photons(my_emitter)
+        my_vis.draw_emitter(my_emitter)
 
-        my_event = my_emitter.get_event(my_detector)
+        my_event = my_detector.get_event(my_emitter)
         my_vis.draw_event(my_event)
+
+        my_analyzer = Analyzer(my_detector, my_emitter)
+
+        parameters = {}
+        parameters['x'] = my_emitter.true_properties['x'].get_value()
+        parameters['y'] = my_emitter.true_properties['y'].get_value()
+        parameters['angle'] = my_emitter.true_properties['angle'].get_value()
+        parameters['length'] = my_emitter.true_properties['length'].get_value()
+        parameters['t0'] = t_0
+
+        my_analyzer.ln_likelihood(my_event,parameters)
 
         i=1
         assert i == 1

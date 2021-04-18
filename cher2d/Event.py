@@ -1,4 +1,4 @@
-from cher2d.Detector import Detector
+#from cher2d.Detector import Detector
 import numpy as np
 from scipy import stats
 
@@ -8,7 +8,7 @@ class Event():
 
     """
 
-    def __init__(self, detector: Detector):
+    def __init__(self, detector):
         """Constructor
         """
 

@@ -106,4 +106,16 @@ class Visualizer():
 
             x1 = x0 + distance*np.cos(photon.angle)
             y1 = y0 + distance*np.sin(photon.angle)
-            plt.plot([x0,x1],[y0,y1],ls='--', color='grey')
+            plt.plot([x0,x1],[y0,y1],ls='--', color='grey', zorder=1)
+
+    def draw_emitter(self,emitter):
+        """Show photons produced by an emitter
+        """
+        x0 = emitter.true_properties['x'].get_value()
+        y0 = emitter.true_properties['y'].get_value()
+        angle = emitter.true_properties['angle'].get_value()
+        length = emitter.true_properties['length'].get_value()
+
+        x1 = x0 + length * np.cos(angle)
+        y1 = y0 + length * np.sin(angle)
+        plt.plot([x0, x1], [y0, y1], lw=3, color='red', zorder=4)

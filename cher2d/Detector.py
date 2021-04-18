@@ -1,6 +1,8 @@
 from cher2d.Device import Device
 from cher2d.PhotoSensorModule import PhotoSensorModule
 from cher2d.DesignProperty import DesignProperty
+from cher2d.Event import Event
+from cher2d.Emitter import Emitter
 import numpy as np
 
 class Detector(Device):
@@ -20,6 +22,55 @@ class Detector(Device):
         for i_module in range(self.true_properties['n_module'].get_value()):
             self.photo_sensor_modules.append(PhotoSensorModule(i_module, photo_sensor_model_design_properties,
                                                                photo_sensor_design_properties))
+
+    def get_event(self, emitter: Emitter) -> Event:
+        """Produce an event from the emitter photons
+        """
+        event = Event(self)
+
+        n_module = self.true_properties['n_module'].get_value()
+        for photon in emitter.photons:
+            x0 = photon.x
+            y0 = photon.y
+
+            # see if photon crosses a module:
+            for i_module in range(n_module):
+                istr = str(i_module)
+                x_m = self.true_properties['x_' + istr].get_value()
+                y_m = self.true_properties['y_' + istr].get_value()
+                angle_m = self.true_properties['angle_' + istr].get_value()
+                module = self.photo_sensor_modules[i_module]
+                width = module.true_properties['width'].get_value()
+
+                x, y = module.find_intersection(photon, [x_m, y_m, angle_m])
+                dist_m = np.sqrt((x - x_m) ** 2 + (y - y_m) ** 2)
+                if dist_m < width / 2.:
+                    # see if photon crosses a sensor
+                    n_sensor = module.true_properties['n_sensor'].get_value()
+                    for i_sensor in range(n_sensor):
+                        istr = str(i_sensor)
+                        x_s = module.true_properties['x_' + istr].get_value()
+                        y_s = module.true_properties['y_' + istr].get_value()
+                        angle_s = module.true_properties['angle_' + istr].get_value()
+                        sensor = module.photo_sensors[i_sensor]
+                        width_s = sensor.true_properties['width'].get_value()
+
+                        x_d, y_d, angle_d = sensor.get_global_orientation([x_s, y_s, angle_s], [x_m, y_m, angle_m])
+                        x, y = sensor.find_intersection(photon, [x_d, y_d, angle_d])
+                        dist_s = np.sqrt((x - x_d) ** 2 + (y - y_d) ** 2)
+                        if dist_s < width_s/2.:
+                            # photon hit photocathode - was a photo-electron produced?
+                            qe = sensor.true_properties['qe'].get_value()
+                            if qe > photon.random_numbers_uniform[0]:
+                                distance = np.sqrt((x0-x)**2 + (y0-y)**2)
+                                t = photon.t + distance/photon.VELOCITY
+                                # incorporate timing resolution
+                                t_obs = t + sensor.true_properties['t_sig'].get_value() * photon.random_numbers_norm[0]
+                                event.add_pe(i_module, i_sensor,t)
+                            break
+                    break
+        return event
+
 
     @classmethod
     def default_properties(cls):
