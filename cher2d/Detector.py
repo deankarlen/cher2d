@@ -83,19 +83,35 @@ class Detector(Device):
 
         design_properties = {}
 
-        # photosensor_modules
+        # photosensor_modules: wall and floor
+        n_set = 2
         n_module = 7
-        add_prop('n_module', 'number of photosensor modules in detector', 'int', 'exact', n_module, 0)
+        add_prop('n_module', 'number of photosensor modules in detector', 'int', 'exact', n_module*n_set, 0)
         pitch = 700.
         add_prop('pitch', 'separation between centres of photosensor modules (mm)', 'float', 'exact', pitch, 0.)
 
-        y = -1. * (n_module - 1) / 2. * pitch
+        # first set makes up the floor
+        x = -1. * (n_module - 1) / 2. * pitch - n_module*pitch/2.
         for i_module in range(n_module):
             i_str = str(i_module)
             # positions of center of photosensor module active surfaces
-            add_prop('x_' + i_str, 'x coordinate of center of module front surface wrt detector center (mm)',
+            add_prop('x_' + i_str, 'x coordinate of center of module front surface (mm)',
+                     'float', 'norm', x, 2.)
+            add_prop('y_' + i_str, 'y coordinate of center of module front surface (mm) ',
                      'float', 'norm', 0., 2.)
-            add_prop('y_' + i_str, 'y coordinate of center of module front surface wrt detector center (mm) ',
+            # orientation
+            add_prop('angle_' + i_str, 'effective angle wrt horizontal wrt detector coordinate system (rad)',
+                     'float', 'norm', 0., 0.002)
+            x += pitch
+
+        # second set makes up the wall
+        y = -1. * (n_module - 1) / 2. * pitch + n_module*pitch/2.
+        for i_module in range(n_module):
+            i_str = str(i_module + n_module)
+            # positions of center of photosensor module active surfaces
+            add_prop('x_' + i_str, 'x coordinate of center of module front surface (mm)',
+                     'float', 'norm', 0., 2.)
+            add_prop('y_' + i_str, 'y coordinate of center of module front surface (mm) ',
                      'float', 'norm', y, 2.)
             # orientation
             add_prop('angle_' + i_str, 'effective angle wrt horizontal wrt detector coordinate system (rad)',

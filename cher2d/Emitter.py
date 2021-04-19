@@ -64,8 +64,8 @@ class Emitter(Device):
 
         # starting position, direction, length
         add_prop('x', 'x coordinate of starting point (mm)', 'float', 'norm', -2000.0, 0.1)
-        add_prop('y', 'y coordinate of starting point (mm)', 'float', 'norm', 0.0, 0.1)
-        add_prop('angle', 'angle wrt to x axis (rad)', 'float', 'norm', 0.0, 0.1)
+        add_prop('y', 'y coordinate of starting point (mm)', 'float', 'norm', 3000.0, 0.1)
+        add_prop('angle', 'angle wrt to x axis (rad)', 'float', 'norm', -0.6, 0.1)
         add_prop('length', 'path length of emission (mm)', 'float', 'norm', 1000.0, 0.1)
 
         # Cherenkov angle

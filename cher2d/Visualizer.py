@@ -21,7 +21,7 @@ class Visualizer:
         ends = np.array([np.add([x, y], vector), np.subtract([x, y], vector)]).T
         plt.plot(ends[0], ends[1], **kwargs)
 
-    def draw_detector(self, xlim=(-5000, 1000), ylim=(-3000, 3000)):
+    def draw_detector(self, xlim=(-5500, 500), ylim=(-500, 5500)):
         """Show the layout of the photosensor and modules
         """
         plt.figure(figsize=(8, 8))
@@ -77,34 +77,36 @@ class Visualizer:
                     self.draw_line(x_d, y_d, angle_d, width_s, lw=2, color=color, zorder=3)
         plt.show()
 
-    def draw_photons(self, emitter):
+    def draw_photons(self, emitter, mod_n=1):
         """Show photons produced by an emitter
+        mod_n: draw every mod_n photons (to show all, set mod_n = 1)
         """
         max_distance = 100000
         n_module = self.detector.true_properties['n_module'].get_value()
-        for photon in emitter.photons:
-            x0 = photon.x
-            y0 = photon.y
+        for i, photon in enumerate(emitter.photons):
+            if i % mod_n == 0:
+                x0 = photon.x
+                y0 = photon.y
 
-            # see if photon crosses a module:
-            distance = max_distance
-            for i_module in range(n_module):
-                i_str = str(i_module)
-                x_m = self.detector.true_properties['x_' + i_str].get_value()
-                y_m = self.detector.true_properties['y_' + i_str].get_value()
-                angle_m = self.detector.true_properties['angle_' + i_str].get_value()
-                module = self.detector.photo_sensor_modules[i_module]
-                width = module.true_properties['width'].get_value()
+                # see if photon crosses a module:
+                distance = max_distance
+                for i_module in range(n_module):
+                    i_str = str(i_module)
+                    x_m = self.detector.true_properties['x_' + i_str].get_value()
+                    y_m = self.detector.true_properties['y_' + i_str].get_value()
+                    angle_m = self.detector.true_properties['angle_' + i_str].get_value()
+                    module = self.detector.photo_sensor_modules[i_module]
+                    width = module.true_properties['width'].get_value()
 
-                x, y = module.find_intersection(photon, [x_m, y_m, angle_m])
-                dist_m = np.sqrt((x - x_m) ** 2 + (y - y_m) ** 2)
-                if dist_m < width / 2.:
-                    distance = np.sqrt((x0 - x) ** 2 + (y0 - y) ** 2)
-                    break
+                    x, y = module.find_intersection(photon, [x_m, y_m, angle_m])
+                    dist_m = np.sqrt((x - x_m) ** 2 + (y - y_m) ** 2)
+                    if dist_m < width / 2.:
+                        distance = np.sqrt((x0 - x) ** 2 + (y0 - y) ** 2)
+                        break
 
-            x1 = x0 + distance * np.cos(photon.angle)
-            y1 = y0 + distance * np.sin(photon.angle)
-            plt.plot([x0, x1], [y0, y1], ls='--', color='grey', zorder=1)
+                x1 = x0 + distance * np.cos(photon.angle)
+                y1 = y0 + distance * np.sin(photon.angle)
+                plt.plot([x0, x1], [y0, y1], ls='--', color='grey', zorder=1)
 
     @staticmethod
     def draw_emitter(emitter):
