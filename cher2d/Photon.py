@@ -1,6 +1,5 @@
-
-import numpy as np
 from scipy import stats
+
 
 class Photon:
     """
@@ -8,7 +7,7 @@ class Photon:
 
     """
 
-    VELOCITY = 299.79/1.333
+    VELOCITY = 299.79 / 1.333
 
     def __init__(self, t, x, y, angle):
         """Constructor

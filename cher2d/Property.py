@@ -16,6 +16,3 @@ class Property:
             raise ValueError('Error in constructing Property (' + self.name +
                              '): variable_type must be one of:', buff)
         self.property_type = property_type
-
-
-

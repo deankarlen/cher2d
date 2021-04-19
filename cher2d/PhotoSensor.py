@@ -8,12 +8,10 @@ class PhotoSensor(Device):
 
     """
 
-    def __init__(self, sensor_id: int, design_properties: list):
+    def __init__(self, sensor_id: int, design_properties: dict):
         """Constructor
         """
         super().__init__(sensor_id, design_properties)
-
-
 
     @classmethod
     def default_properties(cls) -> dict:
@@ -29,10 +27,10 @@ class PhotoSensor(Device):
         design_properties = {}
 
         # size
-        add_prop('width','width of photosensor active surface (mm)', 'float', 'norm', 75.0, 0.1)
+        add_prop('width', 'width of photosensor active surface (mm)', 'float', 'norm', 75.0, 0.1)
 
         # detector performance
-        add_prop('t_sig','timing resolution (ns)', 'float', 'norm', 1.5, 0.01)
-        add_prop('qe','quantum efficiency','float','beta', 0.8, 0.01)
+        add_prop('t_sig', 'timing resolution (ns)', 'float', 'norm', 1.5, 0.01)
+        add_prop('qe', 'quantum efficiency', 'float', 'beta', 0.8, 0.01)
 
         return design_properties

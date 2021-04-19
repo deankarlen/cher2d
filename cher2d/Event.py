@@ -1,8 +1,4 @@
-#from cher2d.Detector import Detector
-import numpy as np
-from scipy import stats
-
-class Event():
+class Event:
     """
     An event is a collection of signals for the photosensors
 
@@ -13,13 +9,21 @@ class Event():
         """
 
         self.detector = detector
-        self.n_module = self.detector.true_properties['n_module'].get_value()
+        self.n_module = self.detector.design_properties['n_module'].mean
 
-        self.module_data = {}
+        self.n_pe = []
+        self.sum_t = []
+
         for i_module in range(self.n_module):
-            self.module_data[i_module] = {}
+            self.n_pe.append([])
+            self.sum_t.append([])
+            module = self.detector.photo_sensor_modules[i_module]
+
+            n_sensor = module.design_properties['n_sensor'].mean
+            for i_sensor in range(n_sensor):
+                self.n_pe[i_module].append(0)
+                self.sum_t[i_module].append(0.)
 
     def add_pe(self, i_module, i_sensor, t):
-        if i_sensor not in self.module_data[i_module]:
-            self.module_data[i_module][i_sensor] = []
-        self.module_data[i_module][i_sensor].append(t)
+        self.n_pe[i_module][i_sensor] += 1
+        self.sum_t[i_module][i_sensor] += t

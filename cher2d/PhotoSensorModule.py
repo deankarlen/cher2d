@@ -2,13 +2,14 @@ from cher2d.Device import Device
 from cher2d.DesignProperty import DesignProperty
 from cher2d.PhotoSensor import PhotoSensor
 
+
 class PhotoSensorModule(Device):
     """
     A PhotoSensorModule object is a group of Photosensors that make up a module
 
     """
 
-    def __init__(self, module_id: int, design_properties: list, photo_sensor_design_properties:list):
+    def __init__(self, module_id: int, design_properties: dict, photo_sensor_design_properties: dict):
         """Constructor
         """
         super().__init__(module_id, design_properties)
@@ -35,18 +36,18 @@ class PhotoSensorModule(Device):
         add_prop('n_sensor', 'number of photosensors in module', 'int', 'exact', n_sensor, 0)
         pitch = 115.
         add_prop('pitch', 'separation between centres of photosensors (mm)', 'float', 'exact', pitch, 0.)
-        add_prop('width',' width of module in the active surface plane (mm)', 'float', 'norm', n_sensor*pitch, 1.)
+        add_prop('width', ' width of module in the active surface plane (mm)', 'float', 'norm', n_sensor * pitch, 1.)
 
-        x = -1. * (n_sensor-1)/2. * pitch
+        x = -1. * (n_sensor - 1) / 2. * pitch
         for i_sensor in range(n_sensor):
             i_str = str(i_sensor)
             # positions of center of photosensor active surfaces
-            add_prop('x_'+i_str, 'x coordinate of center of photosensor active surface wrt module center (mm)',
+            add_prop('x_' + i_str, 'x coordinate of center of photosensor active surface wrt module center (mm)',
                      'float', 'norm', x, 0.5)
-            add_prop('y_'+i_str, 'y coordinate of center of photosensor active surface wrt module center (mm) ',
+            add_prop('y_' + i_str, 'y coordinate of center of photosensor active surface wrt module center (mm) ',
                      'float', 'norm', 0., 0.5)
             # orientation
-            add_prop('angle_'+i_str, 'effective angle wrt vertical wrt module coordinate system (rad)',
+            add_prop('angle_' + i_str, 'effective angle wrt vertical wrt module coordinate system (rad)',
                      'float', 'norm', 0., 0.001)
             x += pitch
 

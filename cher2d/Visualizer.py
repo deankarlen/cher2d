@@ -1,27 +1,27 @@
-from cher2d.Detector import Detector
-from cher2d.Emitter import Emitter
 import matplotlib.pyplot as plt
 import numpy as np
 
-class Visualizer():
+
+class Visualizer:
     """
     A Device object is a group of PhotoSensorModules
 
     """
-    NUM_COLORS = 12
+    NUM_COLORS = 100
 
-    def __init__(self, detector: Detector):
+    def __init__(self, detector):
         """Constructor
         """
         self.detector = detector
         self.cm = plt.get_cmap('gist_rainbow')
 
-    def draw_line(self, x, y, angle, width, **kwargs):
-        vector = [width/2.*np.cos(angle),width/2.*np.sin(angle)]
-        ends = np.array([np.add([x,y],vector),np.subtract([x,y],vector)]).T
-        plt.plot(ends[0],ends[1], **kwargs)
+    @staticmethod
+    def draw_line(x, y, angle, width, **kwargs):
+        vector = [width / 2. * np.cos(angle), width / 2. * np.sin(angle)]
+        ends = np.array([np.add([x, y], vector), np.subtract([x, y], vector)]).T
+        plt.plot(ends[0], ends[1], **kwargs)
 
-    def draw_detector(self,xlim=(-5000,1000),ylim=(-3000,3000)):
+    def draw_detector(self, xlim=(-5000, 1000), ylim=(-3000, 3000)):
         """Show the layout of the photosensor and modules
         """
         plt.figure(figsize=(8, 8))
@@ -31,55 +31,53 @@ class Visualizer():
         # draw each module
         n_module = self.detector.true_properties['n_module'].get_value()
         for i_module in range(n_module):
-            istr = str(i_module)
-            x = self.detector.true_properties['x_'+istr].get_value()
-            y = self.detector.true_properties['y_' + istr].get_value()
-            angle = self.detector.true_properties['angle_' + istr].get_value()
+            i_str = str(i_module)
+            x = self.detector.true_properties['x_' + i_str].get_value()
+            y = self.detector.true_properties['y_' + i_str].get_value()
+            angle = self.detector.true_properties['angle_' + i_str].get_value()
             module = self.detector.photo_sensor_modules[i_module]
             width = module.true_properties['width'].get_value()
             self.draw_line(x, y, angle, width, lw=4, alpha=0.3, zorder=1)
 
             n_sensor = module.true_properties['n_sensor'].get_value()
             for i_sensor in range(n_sensor):
-                istr = str(i_sensor)
-                x_s = module.true_properties['x_' + istr].get_value()
-                y_s = module.true_properties['y_' + istr].get_value()
-                angle_s = module.true_properties['angle_' + istr].get_value()
+                i_str = str(i_sensor)
+                x_s = module.true_properties['x_' + i_str].get_value()
+                y_s = module.true_properties['y_' + i_str].get_value()
+                angle_s = module.true_properties['angle_' + i_str].get_value()
                 sensor = module.photo_sensors[i_sensor]
                 width_s = sensor.true_properties['width'].get_value()
-                x_d, y_d, angle_d = sensor.get_global_orientation([x_s,y_s,angle_s],[x,y,angle])
+                x_d, y_d, angle_d = sensor.get_global_orientation([x_s, y_s, angle_s], [x, y, angle])
                 self.draw_line(x_d, y_d, angle_d, width_s, lw=1, color='black', zorder=2)
 
-        #plt.show()
+        # plt.show()
 
     def draw_event(self, event):
         n_module = self.detector.true_properties['n_module'].get_value()
         for i_module in range(n_module):
-            istr = str(i_module)
-            x = self.detector.true_properties['x_' + istr].get_value()
-            y = self.detector.true_properties['y_' + istr].get_value()
-            angle = self.detector.true_properties['angle_' + istr].get_value()
+            i_str = str(i_module)
+            x = self.detector.true_properties['x_' + i_str].get_value()
+            y = self.detector.true_properties['y_' + i_str].get_value()
+            angle = self.detector.true_properties['angle_' + i_str].get_value()
             module = self.detector.photo_sensor_modules[i_module]
 
             n_sensor = module.true_properties['n_sensor'].get_value()
             for i_sensor in range(n_sensor):
-                if i_sensor in event.module_data[i_module]:
-                    n_photons = len(event.module_data[i_module][i_sensor])
-                    if n_photons > 0:
-                        istr = str(i_sensor)
-                        x_s = module.true_properties['x_' + istr].get_value()
-                        y_s = module.true_properties['y_' + istr].get_value()
-                        angle_s = module.true_properties['angle_' + istr].get_value()
-                        sensor = module.photo_sensors[i_sensor]
-                        width_s = sensor.true_properties['width'].get_value()
-                        x_d, y_d, angle_d = sensor.get_global_orientation([x_s, y_s, angle_s], [x, y, angle])
-                        color = self.cm(1.*n_photons/self.NUM_COLORS)
+                n_photons = event.n_pe[i_module][i_sensor]
+                if n_photons > 0:
+                    i_str = str(i_sensor)
+                    x_s = module.true_properties['x_' + i_str].get_value()
+                    y_s = module.true_properties['y_' + i_str].get_value()
+                    angle_s = module.true_properties['angle_' + i_str].get_value()
+                    sensor = module.photo_sensors[i_sensor]
+                    width_s = sensor.true_properties['width'].get_value()
+                    x_d, y_d, angle_d = sensor.get_global_orientation([x_s, y_s, angle_s], [x, y, angle])
+                    color = self.cm(1. * n_photons / self.NUM_COLORS)
 
-                        self.draw_line(x_d, y_d, angle_d, width_s, lw=2, color=color, zorder=3)
+                    self.draw_line(x_d, y_d, angle_d, width_s, lw=2, color=color, zorder=3)
         plt.show()
 
-
-    def draw_photons(self,emitter):
+    def draw_photons(self, emitter):
         """Show photons produced by an emitter
         """
         max_distance = 100000
@@ -88,27 +86,28 @@ class Visualizer():
             x0 = photon.x
             y0 = photon.y
 
-            #see if photon crosses a module:
+            # see if photon crosses a module:
             distance = max_distance
             for i_module in range(n_module):
-                istr = str(i_module)
-                x_m = self.detector.true_properties['x_' + istr].get_value()
-                y_m = self.detector.true_properties['y_' + istr].get_value()
-                angle_m = self.detector.true_properties['angle_' + istr].get_value()
+                i_str = str(i_module)
+                x_m = self.detector.true_properties['x_' + i_str].get_value()
+                y_m = self.detector.true_properties['y_' + i_str].get_value()
+                angle_m = self.detector.true_properties['angle_' + i_str].get_value()
                 module = self.detector.photo_sensor_modules[i_module]
                 width = module.true_properties['width'].get_value()
 
                 x, y = module.find_intersection(photon, [x_m, y_m, angle_m])
-                dist_m = np.sqrt((x-x_m)**2 + (y-y_m)**2)
-                if dist_m < width/2.:
-                    distance = np.sqrt((x0-x)**2 + (y0-y)**2)
+                dist_m = np.sqrt((x - x_m) ** 2 + (y - y_m) ** 2)
+                if dist_m < width / 2.:
+                    distance = np.sqrt((x0 - x) ** 2 + (y0 - y) ** 2)
                     break
 
-            x1 = x0 + distance*np.cos(photon.angle)
-            y1 = y0 + distance*np.sin(photon.angle)
-            plt.plot([x0,x1],[y0,y1],ls='--', color='grey', zorder=1)
+            x1 = x0 + distance * np.cos(photon.angle)
+            y1 = y0 + distance * np.sin(photon.angle)
+            plt.plot([x0, x1], [y0, y1], ls='--', color='grey', zorder=1)
 
-    def draw_emitter(self,emitter):
+    @staticmethod
+    def draw_emitter(emitter):
         """Show photons produced by an emitter
         """
         x0 = emitter.true_properties['x'].get_value()

@@ -4,13 +4,14 @@ from cher2d.Photon import Photon
 import numpy as np
 from scipy import stats
 
+
 class Emitter(Device):
     """
     An Emitter object produces Cherenkov radiation
 
     """
 
-    def __init__(self, emitter_id: int, design_properties: list):
+    def __init__(self, emitter_id: int, design_properties: dict):
         """Constructor
         """
         super().__init__(emitter_id, design_properties)
@@ -33,8 +34,8 @@ class Emitter(Device):
         emitter_angle = self.true_properties['angle'].get_value()
         ch_angle = self.true_properties['ch_angle'].get_value()
 
-        while len(self.photons)<100000:
-            travel = stats.expon.rvs(scale=1./density)
+        while len(self.photons) < 100000:
+            travel = stats.expon.rvs(scale=1. / density)
             dist += travel
             if dist < self.true_properties['length'].get_value():
                 sign = 1.
@@ -67,14 +68,13 @@ class Emitter(Device):
         add_prop('angle', 'angle wrt to x axis (rad)', 'float', 'norm', 0.0, 0.1)
         add_prop('length', 'path length of emission (mm)', 'float', 'norm', 1000.0, 0.1)
 
-        # cherenkov angle
-        add_prop('ch_angle', 'cherenkov emission angle (rad)', 'float', 'norm', 0.733, 0.001)
+        # Cherenkov angle
+        add_prop('ch_angle', 'Cherenkov emission angle (rad)', 'float', 'norm', 0.733, 0.001)
 
         # photon emission probability per unit length
-        add_prop('ch_density', 'cherenkov emission probability (per mm)', 'float', 'norm', 0.01, 0.00001)
+        add_prop('ch_density', 'Cherenkov emission probability (per mm)', 'float', 'norm', 0.03*100, 0.00001)
 
         # emitter velocity
-        add_prop('velocity','velocity of the emitter particle (mm/ns)', 'float', 'exact', 299.79, 0.)
-
+        add_prop('velocity', 'velocity of the emitter particle (mm/ns)', 'float', 'exact', 299.79, 0.)
 
         return design_properties
