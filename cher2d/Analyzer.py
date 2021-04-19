@@ -27,7 +27,7 @@ class Analyzer:
 
         #print(guess)
         m = Minuit(fcn, x=guess['x'], y=guess['y'], angle=guess['angle'], length=guess['length'], t0=guess['t0'])
-        m.limits = [(-5000., 0.), (-3000., 3000.), (None, None) , (0.1, 3000.), (-100., 100.)]
+        m.limits = [(-5000., 0.), (0., 5000.), (None, None) , (0.1, 3000.), (-100., 100.)]
         m.errors = (10., 10., 0.01, 10.,0.5)
 
         m.migrad()  # run optimiser
