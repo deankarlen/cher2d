@@ -8,10 +8,10 @@ class PhotoSensor(Device):
 
     """
 
-    def __init__(self, sensor_id: int, design_properties: dict):
+    def __init__(self, sensor_id: int, design_properties: dict, exact: bool = False):
         """Constructor
         """
-        super().__init__(sensor_id, design_properties)
+        super().__init__(sensor_id, design_properties, exact)
 
     @classmethod
     def default_properties(cls) -> dict:
@@ -32,5 +32,8 @@ class PhotoSensor(Device):
         # detector performance
         add_prop('t_sig', 'timing resolution (ns)', 'float', 'norm', 1.5, 0.01)
         add_prop('qe', 'quantum efficiency', 'float', 'beta', 0.8, 0.01)
+
+        # dark noise - note that detector defines the time window for events - turn off for now (not in likelihood)
+        add_prop('dark_noise_rate', 'rate of random single pe pulses (Hz)', 'float', 'exact', 0., 0.)
 
         return design_properties

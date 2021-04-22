@@ -12,8 +12,15 @@ class Visualizer:
     def __init__(self, detector):
         """Constructor
         """
+        self.plot = None
         self.detector = detector
         self.cm = plt.get_cmap('gist_rainbow')
+
+    def savefig(self, filename):
+        self.plot.savefig(filename)
+
+    def show(self):
+        self.plot.show()
 
     @staticmethod
     def draw_line(x, y, angle, width, **kwargs):
@@ -50,7 +57,7 @@ class Visualizer:
                 x_d, y_d, angle_d = sensor.get_global_orientation([x_s, y_s, angle_s], [x, y, angle])
                 self.draw_line(x_d, y_d, angle_d, width_s, lw=1, color='black', zorder=2)
 
-        # plt.show()
+        self.plot = plt.gcf()
 
     def draw_event(self, event):
         n_module = self.detector.true_properties['n_module'].get_value()
@@ -75,7 +82,8 @@ class Visualizer:
                     color = self.cm(1. * n_photons / self.NUM_COLORS)
 
                     self.draw_line(x_d, y_d, angle_d, width_s, lw=2, color=color, zorder=3)
-        plt.show()
+
+        self.plot = plt.gcf()
 
     def draw_photons(self, emitter, mod_n=1):
         """Show photons produced by an emitter
@@ -108,8 +116,9 @@ class Visualizer:
                 y1 = y0 + distance * np.sin(photon.angle)
                 plt.plot([x0, x1], [y0, y1], ls='--', color='grey', zorder=1)
 
-    @staticmethod
-    def draw_emitter(emitter):
+        self.plot = plt.gcf()
+
+    def draw_emitter(self, emitter):
         """Show photons produced by an emitter
         """
         x0 = emitter.true_properties['x'].get_value()
@@ -120,3 +129,5 @@ class Visualizer:
         x1 = x0 + length * np.cos(angle)
         y1 = y0 + length * np.sin(angle)
         plt.plot([x0, x1], [y0, y1], lw=3, color='red', zorder=4)
+
+        self.plot = plt.gcf()

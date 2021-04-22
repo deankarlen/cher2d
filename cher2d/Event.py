@@ -24,6 +24,6 @@ class Event:
                 self.n_pe[i_module].append(0)
                 self.sum_t[i_module].append(0.)
 
-    def add_pe(self, i_module, i_sensor, t):
-        self.n_pe[i_module][i_sensor] += 1
-        self.sum_t[i_module][i_sensor] += t
+    def add_pe(self, i_module: int, i_sensor: int, t: float, n_pe=1):
+        self.n_pe[i_module][i_sensor] += n_pe
+        self.sum_t[i_module][i_sensor] += t*n_pe

@@ -11,10 +11,10 @@ class Emitter(Device):
 
     """
 
-    def __init__(self, emitter_id: int, design_properties: dict):
+    def __init__(self, emitter_id: int, design_properties: dict, exact: bool = False):
         """Constructor
         """
-        super().__init__(emitter_id, design_properties)
+        super().__init__(emitter_id, design_properties, exact)
 
         self.photons = None
 

@@ -2,7 +2,9 @@ from cher2d.Device import Device
 from cher2d.PhotoSensorModule import PhotoSensorModule
 from cher2d.DesignProperty import DesignProperty
 from cher2d.Event import Event
+from cher2d.Photon import Photon
 import numpy as np
+from scipy import stats
 
 
 class Detector(Device):
@@ -12,21 +14,94 @@ class Detector(Device):
     """
 
     def __init__(self, detector_id: int, design_properties: dict, photo_sensor_model_design_properties: dict,
-                 photo_sensor_design_properties: dict):
+                 photo_sensor_design_properties: dict, exact: bool = False):
         """Constructor
         """
-        super().__init__(detector_id, design_properties)
+        super().__init__(detector_id, design_properties, exact)
 
         # construct the detector by adding modules
         self.photo_sensor_modules = []
         for i_module in range(self.true_properties['n_module'].get_value()):
             self.photo_sensor_modules.append(PhotoSensorModule(i_module, photo_sensor_model_design_properties,
-                                                               photo_sensor_design_properties))
+                                                               photo_sensor_design_properties, exact))
+
+    def get_asimov(self, emitter, parameters: dict, truth: bool):
+        """Produce an Asimov event: expectation values for n_pe and times
+            - parameters: the emitter parameters that are being estimated
+            - truth - True: for generating an Asimov event or False: use design_mean (for calculating likelihood)
+        """
+        asimov = Event(self)
+
+        x_e = parameters['x']
+        y_e = parameters['y']
+        angle_e = parameters['angle']
+        length_e = parameters['length']
+        t0_e = parameters['t0']
+
+        ch_density = emitter.get_value('ch_density', truth)
+        velocity_e = emitter.get_value('velocity', truth)
+
+        n_module = self.get_value('n_module', True)
+        for i_module in range(n_module):
+            i_str = str(i_module)
+            x_m = self.get_value('x_' + i_str, truth)
+            y_m = self.get_value('y_' + i_str, truth)
+            angle_m = self.get_value('angle_' + i_str, truth)
+
+            module = self.photo_sensor_modules[i_module]
+            n_sensor = module.get_value('n_sensor', True)
+            for i_sensor in range(n_sensor):
+                i_str = str(i_sensor)
+                x_s = module.get_value('x_' + i_str, truth)
+                y_s = module.get_value('y_' + i_str, truth)
+                angle_s = module.get_value('angle_' + i_str, truth)
+
+                sensor = module.photo_sensors[i_sensor]
+                width_s = sensor.get_value('width', truth)
+
+                # The expected number of pe is calculated by finding the start and end point of the emitter path
+                # that produces photons that hit the sensor
+
+                x_s_0 = x_s - width_s / 2. * np.cos(angle_s)
+                y_s_0 = y_s - width_s / 2. * np.sin(angle_s)
+                x_d_0, y_d_0, angle_d = sensor.get_global_orientation([x_s_0, y_s_0, angle_s], [x_m, y_m, angle_m])
+
+                x_s_1 = x_s + width_s / 2. * np.cos(angle_s)
+                y_s_1 = y_s + width_s / 2. * np.sin(angle_s)
+                x_d_1, y_d_1, angle_d = sensor.get_global_orientation([x_s_1, y_s_1, angle_s], [x_m, y_m, angle_m])
+
+                for sign in [-1., 1.]:
+                    # make a virtual photon that starts at one edge of sensor, and points back towards emitter
+                    angle = angle_e + sign * emitter.get_value('ch_angle', truth) + np.pi
+                    photon_0 = Photon(0., x_d_0, y_d_0, angle)
+                    x_0, y_0 = module.find_intersection(photon_0, [x_e, y_e, angle_e])
+                    t_0 = np.sqrt((x_0 - x_d_0) ** 2 + (y_0 - y_d_0) ** 2) / photon_0.VELOCITY
+                    dist_0 = (x_0 - x_e) * np.cos(angle_e) + (y_0 - y_e) * np.sin(angle_e)
+                    dist_0 = min(length_e, max(0., dist_0))
+
+                    photon_1 = Photon(0., x_d_1, y_d_1, angle)
+                    x_1, y_1 = module.find_intersection(photon_1, [x_e, y_e, angle_e])
+                    t_1 = np.sqrt((x_1 - x_d_1) ** 2 + (y_1 - y_d_1) ** 2) / photon_1.VELOCITY
+                    dist_1 = (x_1 - x_e) * np.cos(angle_e) + (y_1 - y_e) * np.sin(angle_e)
+                    dist_1 = min(length_e, max(0., dist_1))
+
+                    # path length contributing photons
+                    path_length = np.abs(dist_1 - dist_0)
+                    if path_length > 0.:
+                        # for now - assuming constant qe across the surface - half of photons on either side
+                        n_expected = (path_length * ch_density * sensor.get_value('qe', truth)) / 2.
+                        t_expected = 0.5 * (t_0 + t_1 + (dist_0 + dist_1) / velocity_e) + t0_e
+                        asimov.add_pe(i_module, i_sensor, t_expected, n_pe=n_expected)
+
+        return asimov
 
     def get_event(self, emitter) -> Event:
         """Produce an event from the emitter photons
         """
         event = Event(self)
+
+        n_pe = 0
+        sum_times = 0.
 
         n_module = self.true_properties['n_module'].get_value()
         for photon in emitter.photons:
@@ -67,8 +142,28 @@ class Detector(Device):
                                 # incorporate timing resolution
                                 t_obs = t + sensor.true_properties['t_sig'].get_value() * photon.random_numbers_norm[0]
                                 event.add_pe(i_module, i_sensor, t_obs)
+                                n_pe += 1
+                                sum_times += t_obs
                             break
                     break
+
+        # add dark noise (not yet in likelihood!)
+        mean_time = sum_times / n_pe
+        window = self.true_properties['readout_window'].get_value()
+        for i_module in range(n_module):
+            module = self.photo_sensor_modules[i_module]
+            n_sensor = module.true_properties['n_sensor'].get_value()
+            for i_sensor in range(n_sensor):
+                sensor = module.photo_sensors[i_sensor]
+                rate = sensor.true_properties['dark_noise_rate'].get_value()
+                if rate > 0.:
+                    n_expected = rate * window / 1.E9
+                    n_dark = stats.poisson.rvs(n_expected)
+                    if n_dark > 0:
+                        for i_dark in range(n_dark):
+                            t_obs = mean_time + (stats.uniform.rvs() - 0.5) * window
+                            event.add_pe(i_module, i_sensor, t_obs)
+
         return event
 
     @classmethod
@@ -83,15 +178,19 @@ class Detector(Device):
 
         design_properties = {}
 
+        # readout properties:
+        add_prop('readout_window', 'time window for event readout (about the mean time of signals) (ns)',
+                 'float', 'exact', 50., 0.)
+
         # photosensor_modules: wall and floor
         n_set = 2
         n_module = 7
-        add_prop('n_module', 'number of photosensor modules in detector', 'int', 'exact', n_module*n_set, 0)
+        add_prop('n_module', 'number of photosensor modules in detector', 'int', 'exact', n_module * n_set, 0)
         pitch = 700.
         add_prop('pitch', 'separation between centres of photosensor modules (mm)', 'float', 'exact', pitch, 0.)
 
         # first set makes up the floor
-        x = -1. * (n_module - 1) / 2. * pitch - n_module*pitch/2.
+        x = -1. * (n_module - 1) / 2. * pitch - n_module * pitch / 2.
         for i_module in range(n_module):
             i_str = str(i_module)
             # positions of center of photosensor module active surfaces
@@ -105,7 +204,7 @@ class Detector(Device):
             x += pitch
 
         # second set makes up the wall
-        y = -1. * (n_module - 1) / 2. * pitch + n_module*pitch/2.
+        y = -1. * (n_module - 1) / 2. * pitch + n_module * pitch / 2.
         for i_module in range(n_module):
             i_str = str(i_module + n_module)
             # positions of center of photosensor module active surfaces

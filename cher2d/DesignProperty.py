@@ -30,13 +30,41 @@ class DesignProperty(Property):
         self.mean = mean
         self.sigma = sigma
 
-    def get_TrueProperty(self):
+        self.__offset = None
+        if property_type == 'int':
+            self.set_offset(0)
+        else:
+            self.set_offset(0.)
+
+    def get_offset(self):
+        """
+        Return the offset applied
+
+        """
+        return self.__offset
+
+    def set_offset(self, offset):
+        """
+        Change the offset value of the property
+        - this method should only be called via device.set_offset method
+        """
+        offset_type = type(offset).__name__
+        # avoid issues with float64 vs float
+        if offset_type[:len(self.property_type)] != self.property_type:
+            raise TypeError('Property (' + self.name +
+                            ') offset type (' + type(offset).__name__ +
+                            ') does not match property_type (' +
+                            self.property_type + ')')
+
+        self.__offset = offset
+
+    def get_TrueProperty(self, exact):
         """Return a TrueProperty object according to the distribution
         """
 
         true_value = None
 
-        if self.distribution == 'exact':
+        if exact or self.distribution == 'exact':
             true_value = self.mean
 
         elif self.distribution == 'norm':
