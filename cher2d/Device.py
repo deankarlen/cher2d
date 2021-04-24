@@ -20,6 +20,7 @@ class Device:
         # build a device by setting true values for its properties
         for design_property_name in self.design_properties:
             design_property = self.design_properties[design_property_name]
+            design_property.add_device(self)
             true_property = design_property.get_TrueProperty(exact)
             self.true_properties[design_property.name] = true_property
 
@@ -28,13 +29,6 @@ class Device:
         if truth:
             value = self.true_properties[property_name].get_value()
         return value
-
-    def set_offset(self, property_name: str, offset):
-        # for sensitivity studies: offset original value
-        value = self.true_properties[property_name].get_value()
-        diff = offset - self.design_properties[property_name].get_offset()
-        self.true_properties[property_name].set_value(value + diff)
-        self.design_properties[property_name].set_offset(offset)
 
     def get_table(self, width: int = 120):
         table = Texttable()

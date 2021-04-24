@@ -29,12 +29,17 @@ class DesignProperty(Property):
                              '): beta distribution mean outside range (0,1)')
         self.mean = mean
         self.sigma = sigma
+        self.devices = []
 
         self.__offset = None
         if property_type == 'int':
             self.set_offset(0)
         else:
             self.set_offset(0.)
+
+    def add_device(self, device):
+        if device not in self.devices:
+            self.devices.append(device)
 
     def get_offset(self):
         """
@@ -45,8 +50,9 @@ class DesignProperty(Property):
 
     def set_offset(self, offset):
         """
-        Change the offset value of the property
-        - this method should only be called via device.set_offset method
+        Set an offset value of the property to study sensitivity to systematic parameters
+        - after changing the offset, these are applied to any devices built with this design property
+
         """
         offset_type = type(offset).__name__
         # avoid issues with float64 vs float
@@ -56,10 +62,16 @@ class DesignProperty(Property):
                             ') does not match property_type (' +
                             self.property_type + ')')
 
+        if len(self.devices) > 0:
+            diff_offset = offset - self.__offset
+            for device in self.devices:
+                value = device.true_properties[self.name].get_value()
+                device.true_properties[self.name].set_value(value + diff_offset)
+
         self.__offset = offset
 
     def get_TrueProperty(self, exact):
-        """Return a TrueProperty object according to the distribution
+        """Return a TrueProperty object according to the distribution and offset
         """
 
         true_value = None
@@ -86,5 +98,8 @@ class DesignProperty(Property):
             scale = self.sigma * np.sqrt(12.)
             loc = self.mean - scale / 2.
             true_value = stats.uniform.rvs(loc, scale)
+
+        # apply the offset
+        true_value += self.__offset
 
         return TrueProperty(self.name, self.description, self.property_type, true_value)
