@@ -30,8 +30,22 @@ class PhotoSensor(Device):
         add_prop('width', 'width of photosensor active surface (mm)', 'float', 'norm', 75.0, 0.1)
 
         # detector performance
-        add_prop('t_sig', 'timing resolution (ns)', 'float', 'norm', 1.5, 0.01)
+
+        # timing
+        add_prop('t_sig', 'timing resolution (ns)', 'float', 'norm', 1.5, 0.05)
+        # time delay
+        add_prop('td', 'mean time delay (ns)', 'float', 'norm', 1.0, 0.05)
+        add_prop('td_radial', 'delay radial dependence included', 'bool', 'exact', False, 0.)
+        add_prop('td_radial_coeff', 'delay radial coefficienct', 'float', 'norm', 0.5, 0.01)
+
+        # quantum efficiency
         add_prop('qe', 'quantum efficiency', 'float', 'beta', 0.8, 0.01)
+        # quantum efficiency depends on angle
+        add_prop('qe_angle', 'qe angle dependence included', 'bool', 'exact', False, 0.)
+        add_prop('qe_angle_coeff', 'qe angle coefficient', 'float', 'norm', 0.5, 0.01)
+        # quantum efficiency depends on distance from pmt centre
+        add_prop('qe_radial', 'qe radial dependence included', 'bool', 'exact', False, 0.)
+        add_prop('qe_radial_coeff', 'qe radial coefficient', 'float', 'norm', 0.5, 0.01)
 
         # dark noise - note that detector defines the time window for events - turn off for now (not in likelihood)
         add_prop('dark_noise_rate', 'rate of random single pe pulses (Hz)', 'float', 'exact', 0., 0.)

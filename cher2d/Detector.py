@@ -11,6 +11,48 @@ class Detector(Device):
     """
     A Detector object is a group of PhotoSensorModules
 
+    A position and angular PMT response is included as follows:
+     - r is distance from centre of PMT
+     - theta is angle of photon wrt normal of PMT surface (constant across surface)
+     - h is half-width of PMT
+     - qe_0 is the nominal quantum efficiency as specified by design property 'qe'
+     - td_0 is the nominal time delay as specified by design property 'td'
+     - boolean design properties turn on/off angular or radial effects
+     - c_a is the quantum efficiency angular coefficient (c_a > 0)
+     - c_q is quantum efficiency radial coefficient (-1 < c_q < 1)
+     - c_t is time delay radial coefficient (-1 < c_r < 1
+
+    Quantum efficiency:
+    -------------------
+    Two effects: thickness of photocathode traversed and probability that pe gets into PMT vacuum
+    - the latter is qe_0
+    - the former: prob for photon not to interact with pathlength d through a photocathode: exp(-d/d_0).
+    the pathlength: d = k/cos(theta) where k is the photocathode thickness. The ratio d_0/k = c_a,
+    specifies the strength of the angular effect (c_a->0 -> no effect)
+
+    The following form ensures qe is between 0 and 1:
+
+    qe = qe_0 * (1 - exp[-1 / c_a / cos(theta)]) * (1 + c_q * abs(r/h))/(1 + abs(c_q))
+
+    Expectation calculation (for likelihood and Azimov events)
+    E[QE] = qe_0 * (1 - exp[-1 / c_a / cos(theta)])  * 2 \int_0^h (1 + c_q *r/h) dr / 2 \int_0^h dr / (1 + abs(c_q))
+          = qe_0 * (1 - exp[-1 / c_a / cos(theta)]) * (h + 1/2 c_q h^2/h)/h / (1 + abs(c_q))
+          = qe_0 * (1 - exp[-1 / c_a / cos(theta)]) * (1 + 1/2 c_q) / (1 + abs(c_q))
+
+    Time delay
+    ----------
+
+    delay = td_0 * (1 + c_t * abs(r/h))
+
+    If both radial affects activated:
+
+    E[TD] = td_0 * 2 \int_0^h (1 + c_t * r/h) (1 + c_q * r/h) dr  / 2 \int_0^h (1 + c_q * r/h) dr
+          = td_0 * (h + 1/2 c_t h^2/h + 1/2 c_q h^2/h + 1/3 c_t c_q h^3/h^2) / (h + 1/2 c_q h^2/h)
+          = td_0 * (1 +  1/2 c_t + 1/2 c_q + 1/3 c_t c_q) / (1 + 1/2 c_q)
+
+    If only one not activated, set its coefficient to zero
+
+
     """
 
     def __init__(self, detector_id: int, design_properties: dict, photo_sensor_model_design_properties: dict,
@@ -88,10 +130,29 @@ class Detector(Device):
                     # path length contributing photons
                     path_length = np.abs(dist_1 - dist_0)
                     if path_length > 0.:
-                        # for now - assuming constant qe across the surface - half of photons on either side
-                        n_expected = (path_length * ch_density * sensor.get_value('qe', truth)) / 2.
+                        # expected number of photons: half of them on other side of emitter
+                        n_photons_expected = path_length * ch_density / 2.
+                        qe = sensor.get_value('qe', truth)
+                        theta = angle - angle_d - np.pi/2.
+                        if sensor.get_value('qe_angle', truth):
+                            c_a = sensor.get_value('qe_angle_coeff', truth)
+                            if c_a > 0.:
+                                factor = np.exp(-1. / c_a / np.cos(theta))
+                                qe *= (1. - factor)
+                        n_expected = n_photons_expected * qe
+                        c_qe = 0.
+                        if sensor.get_value('qe_radial', truth):
+                            c_qe = sensor.get_value('qe_radial_coeff', truth)
+                            n_expected *= (1. * c_qe/2.)/(1. + abs(c_qe))
+
                         t_expected = 0.5 * (t_0 + t_1 + (dist_0 + dist_1) / velocity_e) + t0_e
-                        asimov.add_pe(i_module, i_sensor, t_expected, n_pe=n_expected)
+                        # transit time delay (within PMT)
+                        c_td = 0.
+                        if sensor.get_value('td_radial', truth):
+                            c_td = sensor.get_value('td_radial_coeff', truth)
+                        delay = sensor.get_value('td', truth) * (1. + c_td/2. + c_qe/2. + c_td*c_qe/3.)/(1. + c_qe/2.)
+
+                        asimov.add_pe(i_module, i_sensor, t_expected + delay, n_pe=n_expected)
 
         return asimov
 
@@ -135,10 +196,26 @@ class Detector(Device):
                         dist_s = np.sqrt((x - x_d) ** 2 + (y - y_d) ** 2)
                         if dist_s < width_s / 2.:
                             # photon hit photocathode - was a photo-electron produced?
+                            theta = photon.angle - angle_d + np.pi / 2.
                             qe = sensor.true_properties['qe'].get_value()
+                            if sensor.true_properties['qe_angle'].get_value():
+                                c_a = sensor.true_properties['qe_angle_coeff'].get_value()
+                                if c_a > 0.:
+                                    factor = np.exp(-1./c_a/np.cos(theta))
+                                    qe *= (1. - factor)
+                            if sensor.true_properties['qe_radial'].get_value():
+                                c_qe = sensor.true_properties['qe_radial_coeff'].get_value()
+                                qe *= (1. + c_qe * dist_s/(width_s/2.))/(1. + abs(c_qe))
+
                             if qe > photon.random_numbers_uniform[0]:
                                 distance = np.sqrt((x0 - x) ** 2 + (y0 - y) ** 2)
                                 t = photon.t + distance / photon.VELOCITY
+                                # internal PMT delay
+                                delay = sensor.true_properties['td'].get_value()
+                                if sensor.true_properties['td_radial'].get_value():
+                                    c_td = sensor.true_properties['td_radial_coeff'].get_value()
+                                    delay *= (1. + c_td * dist_s/(width_s/2.))
+                                t += delay
                                 # incorporate timing resolution
                                 t_obs = t + sensor.true_properties['t_sig'].get_value() * photon.random_numbers_norm[0]
                                 event.add_pe(i_module, i_sensor, t_obs)

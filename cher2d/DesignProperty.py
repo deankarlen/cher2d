@@ -34,8 +34,10 @@ class DesignProperty(Property):
         self.__offset = None
         if property_type == 'int':
             self.set_offset(0)
-        else:
+        elif property_type == 'float':
             self.set_offset(0.)
+        elif property_type == 'bool':
+            self.set_offset(False)
 
     def add_device(self, device):
         if device not in self.devices:
@@ -44,6 +46,7 @@ class DesignProperty(Property):
     def get_offset(self):
         """
         Return the offset applied
+         - for boolean: False offset means to use mean, True offset means to use NOT mean
 
         """
         return self.__offset
@@ -63,10 +66,16 @@ class DesignProperty(Property):
                             self.property_type + ')')
 
         if len(self.devices) > 0:
-            diff_offset = offset - self.__offset
-            for device in self.devices:
-                value = device.true_properties[self.name].get_value()
-                device.true_properties[self.name].set_value(value + diff_offset)
+            if self.property_type in ['int', 'float']:
+                diff_offset = offset - self.__offset
+                for device in self.devices:
+                    value = device.true_properties[self.name].get_value()
+                    device.true_properties[self.name].set_value(value + diff_offset)
+            elif self.property_type == 'bool':
+                if offset != self.__offset:
+                    for device in self.devices:
+                        value = device.true_properties[self.name].get_value()
+                        device.true_properties[self.name].set_value(not value)
 
         self.__offset = offset
 
@@ -99,7 +108,8 @@ class DesignProperty(Property):
             loc = self.mean - scale / 2.
             true_value = stats.uniform.rvs(loc, scale)
 
-        # apply the offset
-        true_value += self.__offset
+        # apply the offset (not for bool!)
+        if self.property_type != 'bool':
+            true_value += self.__offset
 
         return TrueProperty(self.name, self.description, self.property_type, true_value)

@@ -13,6 +13,9 @@ class MyTestCase(unittest.TestCase):
         np.random.seed(seed=2334231)
 
         photosensor_design = PhotoSensor.default_properties()
+        photosensor_design['qe_angle'].mean = True
+        photosensor_design['qe_radial'].mean = True
+        photosensor_design['td_radial'].mean = True
         photosensor_module_design = PhotoSensorModule.flat_mpmt_properties()
         #photosensor_module_design = PhotoSensorModule.dome_mpmt_properties()
         detector_design = Detector.default_properties()
@@ -46,12 +49,12 @@ class MyTestCase(unittest.TestCase):
         emitter_design['angle'].mean = -0.6
         emitter_design['length'].mean = 1500.
         # change the brightness below (at 3, draw every 100 photons)
-        mod_n = 100
-        emitter_design['ch_density'].mean = 0.03 * mod_n
+        mod_n = 1
+        emitter_design['ch_density'].mean = 0.003 * mod_n
         my_emitter = Emitter(0, emitter_design, exact=exact)
         t_0 = 2.
 
-        emitter_design['x'].set_offset(15.)
+        #emitter_design['x'].set_offset(15.)
 
         mpmt = my_detector.photo_sensor_modules[0]
         pmt = mpmt.photo_sensors[0]
@@ -62,7 +65,7 @@ class MyTestCase(unittest.TestCase):
                 print('+++++++++++++++++++++++++++++++++++')
                 print(device.get_table())
 
-        event_type = 'asimov'
+        event_type = 'normal'
 
         if event_type == 'normal':
             my_emitter.emit(t_0)
@@ -80,7 +83,7 @@ class MyTestCase(unittest.TestCase):
         my_vis.draw_event(my_event)
         my_vis.show()
 
-        if 1 == 1:
+        if 1 == 2:
             my_analyzer = Analyzer(my_detector, my_emitter)
 
             parameters = {}
